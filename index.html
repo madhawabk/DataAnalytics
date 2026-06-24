@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Mind Map</title>
+<style>
+/* ── RESET ─────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0a0f1e;
+  --font:system-ui,sans-serif;
+  --node-w:240px;
+  --node-h:42px;
+  --radius:10px;
+  --sel-glow:rgba(124,58,237,.6);
+  --panel-bg:rgba(12,16,30,.93);
+  --panel-border:rgba(255,255,255,.09);
+  --text-muted:#64748b;
+}
+
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:var(--font);color:#f1f5f9}
+
+/* ── VIEWPORT ───────────────────────────────────────── */
+#viewport{position:fixed;inset:0;overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none}
+#viewport.drag{cursor:grabbing}
+#surface{position:absolute;top:0;left:0;width:0;height:0;transform-origin:0 0;will-change:transform}
+
+/* ── SVG ────────────────────────────────────────────── */
+#svg-canvas{position:absolute;top:0;left:0;width:60000px;height:60000px;pointer-events:none;overflow:visible}
+.ep{fill:none;stroke-width:1.8;stroke-linecap:round;transition:opacity .2s}
+
+/* ── NODES ──────────────────────────────────────────── */
+#nodes-layer{position:absolute;top:0;left:0}
+
+.node{
+  position:absolute;
+  width:var(--node-w);
+  display:flex;align-items:center;gap:8px;
+  padding:0 12px;
+  border-radius:var(--radius);
+  border:1.5px solid transparent;
+  cursor:pointer;
+  transition:opacity .25s,transform .3s cubic-bezier(.16,1,.3,1),box-shadow .2s,filter .2s;
+  will-change:transform;
+  overflow:hidden;
+}
+.node:hover{filter:brightness(1.18);box-shadow:0 0 14px rgba(255,255,255,.08)}
+.node.sel{box-shadow:0 0 0 2.5px #fff,0 0 22px var(--sel-glow);filter:brightness(1.22);z-index:10}
+.node.gone{opacity:0;pointer-events:none}
+
+/* long-text leaf nodes get a slightly taller pill */
+.node.long-node{align-items:flex-start;padding:8px 12px}
+.node.long-node .node-label{font-size:11px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+.node-label{
+  flex:1;font-size:12.5px;font-weight:500;color:inherit;
+  line-height:1.35;word-break:break-word;pointer-events:none;
+}
+.node.d0 .node-label{font-size:14px;font-weight:700}
+.node.d1 .node-label{font-size:13px;font-weight:600}
+
+.chevron{
+  flex-shrink:0;width:18px;height:18px;border-radius:50%;
+  background:rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:#fff;
+  transition:transform .25s,background .2s;
+  pointer-events:none;
+}
+.node:hover .chevron{background:rgba(255,255,255,.22)}
+.node.open .chevron{transform:rotate(90deg)}
+
+/* ── POPOVER (long-text full view) ──────────────────── */
+#popover{
+  position:fixed;z-index:300;pointer-events:none;
+  background:rgba(12,16,30,.97);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:12px;padding:14px 16px;
+  max-width:340px;font-size:12.5px;color:#e2e8f0;
+  line-height:1.6;backdrop-filter:blur(12px);
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  opacity:0;transition:opacity .18s;
+  word-break:break-word;
+}
+#popover.show{opacity:1}
+
+/* ── LEFT PANEL (data + theme) ──────────────────────── */
+#left-panel{
+  position:fixed;top:16px;left:16px;z-index:100;
+  display:flex;flex-direction:column;gap:10px;
+  width:170px;
+}
+.panel-card{
+  background:var(--panel-bg);
+  border:1px solid var(--panel-border);
+  border-radius:13px;padding:13px 14px;
+  backdrop-filter:blur(12px);
+}
+.panel-card h3{
+  font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.12em;color:var(--text-muted);margin-bottom:9px;
+}
+.opt-btn{
+  display:flex;align-items:center;gap:9px;
+  width:100%;padding:7px 9px;
+  border-radius:8px;border:1px solid transparent;
+  background:transparent;color:#cbd5e1;
+  font-size:12px;cursor:pointer;text-align:left;
+  transition:background .15s,border-color .15s;
+  font-family:inherit;
+}
+.opt-btn:hover{background:rgba(255,255,255,.06)}
+.opt-btn.active{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);color:#fff}
+.swatch{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+
+/* ── LEGEND ─────────────────────────────────────────── */
+#legend-card{
+  background:var(--panel-bg);
+  border:1px solid var(--panel-border);
+  border-radius:13px;padding:13px 14px;
+  backdrop-filter:blur(12px);
+  pointer-events:none;
+}
+#legend-card h3{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted);margin-bottom:9px}
+.leg-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:11px;color:#94a3b8}
+.leg-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0}
+
+/* ── HUD ─────────────────────────────────────────────── */
+.hud{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:100}
+.hud-btn{
+  width:42px;height:42px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.14);
+  background:rgba(17,24,39,.92);color:#f1f5f9;
+  font-size:17px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(10px);
+  transition:background .15s,transform .1s;
+}
+.hud-btn:hover{background:rgba(124,58,237,.35);transform:scale(1.08)}
+.hud-btn:active{transform:scale(.94)}
+
+/* ── ZOOM LABEL ─────────────────────────────────────── */
+#zoom-label{
+  position:fixed;bottom:24px;left:16px;
+  font-size:12px;color:var(--text-muted);
+  background:rgba(12,16,30,.78);
+  border:1px solid var(--panel-border);
+  padding:6px 12px;border-radius:20px;
+  backdrop-filter:blur(8px);
+  pointer-events:none;z-index:100;
+}
+
+/* ── LOADER ─────────────────────────────────────────── */
+#loader{
+  position:fixed;inset:0;z-index:500;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;background:var(--bg);transition:opacity .4s;
+}
+#loader.out{opacity:0;pointer-events:none}
+.spin{
+  width:36px;height:36px;
+  border:3px solid rgba(124,58,237,.2);border-top-color:#7c3aed;
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loader p{font-size:13px;color:var(--text-muted)}
+
+/* ── ERROR ───────────────────────────────────────────── */
+#err-screen{
+  display:none;position:fixed;inset:0;z-index:400;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,.65);
+}
+#err-screen.show{display:flex}
+.err-box{
+  background:#1a1a2e;border:1px solid #ef4444;
+  border-radius:14px;padding:28px 34px;
+  max-width:480px;text-align:center;
+}
+.err-box h3{color:#f87171;font-size:1.05rem;margin-bottom:10px}
+.err-box p{font-size:13px;color:#cbd5e1;line-height:1.65;margin-top:8px}
+.err-box code{background:#0f172a;padding:2px 7px;border-radius:4px;font-size:11.5px}
+
+/* ── SR ──────────────────────────────────────────────── */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="spin"></div><p id="lmsg">Loading…</p></div>
+
+<div id="err-screen">
+  <div class="err-box">
+    <h3>⚠ Could not load a file</h3>
+    <p id="err-msg">Unknown error.</p>
+    <p style="margin-top:14px;font-size:11.5px;color:#475569">
+      Keep <code>index.html</code>, <code>theme.json</code>, and your data files
+      in the <strong>same folder</strong> and open via <strong>VS Code Live Server</strong>.
+    </p>
+  </div>
+</div>
+
+<div id="popover"></div>
+
+<!-- Left panel: dataset switcher + theme switcher + legend -->
+<div id="left-panel">
+  <div class="panel-card" id="data-card">
+    <h3>Dataset</h3>
+    <div id="data-btns"></div>
+  </div>
+  <div class="panel-card">
+    <h3>Theme</h3>
+    <div id="theme-btns"></div>
+  </div>
+  <div id="legend-card">
+    <h3>Depth key</h3>
+    <div id="legend-rows"></div>
+  </div>
+</div>
+
+<!-- Canvas -->
+<div id="viewport">
+  <div id="surface">
+    <svg id="svg-canvas" aria-hidden="true"><g id="edge-group"></g></svg>
+    <div id="nodes-layer"></div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div class="hud" role="group" aria-label="Map controls">
+  <button class="hud-btn" id="btn-exp"  title="Expand all">⊞</button>
+  <button class="hud-btn" id="btn-col"  title="Collapse all">⊟</button>
+  <button class="hud-btn" id="btn-zi"   title="Zoom in">+</button>
+  <button class="hud-btn" id="btn-zo"   title="Zoom out">−</button>
+  <button class="hud-btn" id="btn-ctr"  title="Re-centre">⌖</button>
+</div>
+
+<div id="zoom-label">Zoom 100%</div>
+<div id="sr-tree" class="sr-only" aria-live="polite"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   MIND MAP ENGINE v3
+   • Reads theme.json  → picks preset + dataFile
+   • dataFile is ONE of the JSON files listed in theme.json
+   • Dataset switcher + theme switcher both live in the left panel
+   • Handles any JSON with either 'text'/'title' keys, with or
+     without 'id' fields — normalises everything at load time
+   • Long-text leaf nodes clamp to 3 lines; hover shows full text
+═══════════════════════════════════════════════════════════════ */
+
+/* ── CONFIG DEFAULTS (overridden by theme.json) ─────── */
+let CFG = { nodeW:240, nodeH:42, rootH:56, gapX:80, gapY:12, minZoom:.08, maxZoom:3, initZoom:.82 };
+
+/* ── STATE ───────────────────────────────────────────── */
+const S = {
+  zoom:0.82, panX:0, panY:0,
+  drag:false, dSX:0, dSY:0,
+  expanded: new Set(['root']),
+  nodes: new Map(),
+  selected:'root',
+  activeDataset:'',
+  activePreset:'',
+  themeJSON: null,
+  rawTree: null,
+};
+
+const CANVAS_OFF = 20000;
+const LONG_THRESH = 80; // chars — above this → clamped "long" node
+
+/* ── DOM ─────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const EL = {
+  vp:      $('viewport'),    surface: $('surface'),
+  edges:   $('edge-group'),  nodes:   $('nodes-layer'),
+  zl:      $('zoom-label'),  pop:     $('popover'),
+  loader:  $('loader'),      lmsg:    $('lmsg'),
+  errScr:  $('err-screen'),  errMsg:  $('err-msg'),
+  legRows: $('legend-rows'), dataBtns:$('data-btns'),
+  themeBtns:$('theme-btns'), srTree:  $('sr-tree'),
+};
+
+/* ── BOOT ────────────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', boot);
+
+async function boot() {
+  try {
+    setMsg('Loading theme.json…');
+    const tr = await fetch('./theme.json');
+    if (!tr.ok) throw new Error(`theme.json → HTTP ${tr.status}`);
+    S.themeJSON = await tr.json();
+    applyPreset(S.themeJSON.preset || Object.keys(S.themeJSON.presets)[0], false);
+    buildThemePanel();
+
+    // Discover all known dataset files from theme.json "datasets" array
+    // (falls back to just the dataFile entry if no "datasets" key present)
+    const files = S.themeJSON.datasets || [S.themeJSON.dataFile || 'curriculum.json'];
+    buildDataPanel(files);
+
+    setMsg('Loading data…');
+    await loadDataset(S.themeJSON.dataFile || files[0]);
+  } catch(e) {
+    showErr(e.message);
+  }
+}
+
+/* ── NORMALISE any JSON tree into {id,text,children} ── */
+let _idCounter = 0;
+function normalise(node, depth=0) {
+  _idCounter++;
+  const text = (node.text || node.title || node.name || `Node ${_idCounter}`).trim();
+  const children = (node.children || []).filter(Boolean).map(c => normalise(c, depth+1));
+  const id = node.id ? String(node.id) : `_n${_idCounter}`;
+  return { id, text, children };
+}
+
+/* ── LOAD DATASET ────────────────────────────────────── */
+async function loadDataset(file) {
+  setMsg(`Loading ${file}…`);
+  const r = await fetch(`./${file}`);
+  if (!r.ok) throw new Error(`${file} → HTTP ${r.status}`);
+  const raw = await r.json();
+  _idCounter = 0;
+  S.rawTree = normalise(raw);
+  S.activeDataset = file;
+  markDataBtn(file);
+  buildMap();
+  hideLoader();
+}
+
+/* ── BUILD MAP ───────────────────────────────────────── */
+function buildMap() {
+  S.nodes.clear();
+  S.expanded = new Set(['root']);
+  // Always expand the root's direct children for first impression
+  (S.rawTree.children || []).forEach(c => S.expanded.add(c.id));
+  S.selected = S.rawTree.id;
+
+  EL.nodes.innerHTML = '';
+  EL.edges.innerHTML = '';
+
+  flattenTree(S.rawTree, null, 0);
+  buildDOM(S.rawTree, 0);
+  wireEvents();
+  layout();
+  centreRoot(false);
+  updateSR();
+}
+
+/* ── FLATTEN ─────────────────────────────────────────── */
+function flattenTree(node, parentId, depth) {
+  S.nodes.set(node.id, {
+    id:node.id, text:node.text, parentId, depth,
+    childIds:(node.children||[]).map(c=>c.id),
+    w:CFG.nodeW, h:depth===0?CFG.rootH:CFG.nodeH,
+    x:0, y:0,
+  });
+  (node.children||[]).forEach(c => flattenTree(c, node.id, depth+1));
+}
+
+/* ── BUILD DOM ───────────────────────────────────────── */
+function buildDOM(node, depth) {
+  const meta = S.nodes.get(node.id);
+  const isLong = node.text.length > LONG_THRESH && meta.childIds.length === 0;
+
+  const div = document.createElement('div');
+  div.id = `n-${node.id}`;
+  div.dataset.id = node.id;
+  div.dataset.fulltext = node.text;
+  div.className = `node d${Math.min(depth,6)}${isLong?' long-node':''}`;
+  div.tabIndex = 0;
+  div.setAttribute('role','treeitem');
+
+  if (isLong) meta.h = 72; // taller slot for long text nodes
+
+  const lbl = document.createElement('span');
+  lbl.className = 'node-label';
+  lbl.textContent = node.text;
+  div.appendChild(lbl);
+
+  if (meta.childIds.length > 0) {
+    const ic = document.createElement('span');
+    ic.className = 'chevron';
+    ic.textContent = '›';
+    div.appendChild(ic);
+  }
+
+  EL.nodes.appendChild(div);
+  (node.children||[]).forEach(c => buildDOM(c, depth+1));
+}
+
+/* ── LAYOUT ──────────────────────────────────────────── */
+function layout() {
+  const sh = new Map();
+
+  function measure(id) {
+    const m = S.nodes.get(id);
+    if (!m) return 0;
+    if (!S.expanded.has(id) || !m.childIds.length) { sh.set(id, m.h); return m.h; }
+    let tot = m.childIds.reduce((a,cid)=>a+measure(cid), 0) + (m.childIds.length-1)*CFG.gapY;
+    const v = Math.max(m.h, tot);
+    sh.set(id,v); return v;
+  }
+
+  function place(id, x, by) {
+    const m = S.nodes.get(id); if(!m) return;
+    const alloc = sh.get(id)||m.h;
+    m.x = x; m.y = by + (alloc-m.h)/2;
+    if (S.expanded.has(id) && m.childIds.length) {
+      let cy=by, nx=x+CFG.nodeW+CFG.gapX;
+      m.childIds.forEach(cid=>{ place(cid,nx,cy); cy+=(sh.get(cid)||0)+CFG.gapY; });
+    }
+  }
+
+  // Root id is whatever the tree root's id is
+  const rootId = S.rawTree.id;
+  measure(rootId);
+  place(rootId, CANVAS_OFF, CANVAS_OFF);
+  render();
+}
+
+/* ── RENDER ──────────────────────────────────────────── */
+function render() {
+  let paths = '';
+  const rootId = S.rawTree.id;
+
+  S.nodes.forEach(m => {
+    const el = document.getElementById(`n-${m.id}`);
+    if (!el) return;
+    const vis = isVisible(m.id, rootId);
+
+    if (vis) {
+      el.classList.remove('gone');
+      el.style.transform = `translate3d(${m.x}px,${m.y}px,0)`;
+      el.setAttribute('aria-expanded', S.expanded.has(m.id));
+      const ic = el.querySelector('.chevron');
+      if (ic) el.classList.toggle('open', S.expanded.has(m.id));
+
+      if (m.parentId) {
+        const pm = S.nodes.get(m.parentId);
+        if (pm && isVisible(m.parentId, rootId) && S.expanded.has(m.parentId)) {
+          const sx=pm.x+pm.w, sy=pm.y+pm.h/2, ex=m.x, ey=m.y+m.h/2;
+          const mid=Math.max(20,(ex-sx)*.42);
+          const dc=Math.min(pm.depth,6);
+          paths+=`<path class="ep d${dc}" d="M${sx},${sy} C${sx+mid},${sy} ${ex-mid},${ey} ${ex},${ey}"/>`;
+        }
+      }
+    } else {
+      el.classList.add('gone');
+      if (m.parentId) {
+        const pm=S.nodes.get(m.parentId);
+        if(pm) el.style.transform=`translate3d(${pm.x}px,${pm.y+(pm.h-m.h)/2}px,0)`;
+      }
+    }
+  });
+
+  EL.edges.innerHTML = paths;
+}
+
+function isVisible(id, rootId) {
+  if (id === rootId) return true;
+  let pid = S.nodes.get(id)?.parentId;
+  while(pid){ if(!S.expanded.has(pid)) return false; pid=S.nodes.get(pid)?.parentId; }
+  return true;
+}
+
+/* ── TRANSFORM ───────────────────────────────────────── */
+function applyT(anim=false) {
+  if(anim){
+    EL.surface.style.transition='transform .55s cubic-bezier(.16,1,.3,1)';
+    setTimeout(()=>EL.surface.style.transition='',580);
+  }
+  EL.surface.style.transform=`translate3d(${S.panX}px,${S.panY}px,0) scale(${S.zoom})`;
+  EL.zl.textContent=`Zoom ${Math.round(S.zoom*100)}%`;
+}
+
+function doZoom(f, mx, my) {
+  const old=S.zoom, nz=Math.min(CFG.maxZoom,Math.max(CFG.minZoom,old*f));
+  if(nz===old) return;
+  const cx=mx??EL.vp.clientWidth/2, cy=my??EL.vp.clientHeight/2;
+  S.panX=cx-(cx-S.panX)/old*nz; S.panY=cy-(cy-S.panY)/old*nz; S.zoom=nz;
+  applyT();
+}
+
+function centreRoot(anim=true) {
+  const r=S.nodes.get(S.rawTree.id); if(!r) return;
+  S.zoom=CFG.initZoom;
+  S.panX=EL.vp.clientWidth*.08-r.x*S.zoom;
+  S.panY=EL.vp.clientHeight*.5-(r.y+r.h/2)*S.zoom;
+  applyT(anim);
+}
+
+/* ── TOGGLE ──────────────────────────────────────────── */
+function toggle(id) {
+  const rootId = S.rawTree.id;
+  if(S.expanded.has(id)){
+    const close=nid=>{S.expanded.delete(nid);S.nodes.get(nid)?.childIds.forEach(close);};
+    close(id);
+    if(id===rootId) S.expanded.add(rootId);
+  } else { S.expanded.add(id); }
+  layout(); nudge(id); updateSR();
+}
+
+function expandAll()   { S.nodes.forEach((_,id)=>S.expanded.add(id)); layout(); updateSR(); }
+function collapseAll() {
+  const rootId=S.rawTree.id;
+  S.expanded.clear(); S.expanded.add(rootId);
+  (S.rawTree.children||[]).forEach(c=>S.expanded.add(c.id));
+  layout(); centreRoot(true); updateSR();
+}
+
+function nudge(id) {
+  const m=S.nodes.get(id); if(!m.childIds.length) return;
+  const pad=64; let minY=Infinity,maxY=-Infinity,maxX=-Infinity;
+  m.childIds.forEach(cid=>{
+    const c=S.nodes.get(cid); if(!c) return;
+    if(c.y<minY) minY=c.y; if(c.y+c.h>maxY) maxY=c.y+c.h; if(c.x+c.w>maxX) maxX=c.x+c.w;
+  });
+  const sT=minY*S.zoom+S.panY, sB=maxY*S.zoom+S.panY, sR=maxX*S.zoom+S.panX;
+  const vH=EL.vp.clientHeight, vW=EL.vp.clientWidth;
+  let dy=0,dx=0;
+  if(sB>vH-pad) dy=(vH-pad)-sB; if(sT+dy<pad) dy=pad-sT; if(sR>vW-pad) dx=(vW-pad)-sR;
+  if(dx||dy){
+    S.panX+=dx; S.panY+=dy;
+    EL.surface.style.transition='transform .45s cubic-bezier(.16,1,.3,1)';
+    applyT(); setTimeout(()=>EL.surface.style.transition='',480);
+  }
+}
+
+/* ── SELECTION ───────────────────────────────────────── */
+function select(id) {
+  document.getElementById(`n-${S.selected}`)?.classList.remove('sel');
+  S.selected=id;
+  document.getElementById(`n-${id}`)?.classList.add('sel');
+}
+
+/* ── POPOVER (long text full view) ──────────────────── */
+function showPop(text,x,y) {
+  EL.pop.textContent=text;
+  EL.pop.style.left=`${Math.min(x+16, window.innerWidth-360)}px`;
+  EL.pop.style.top=`${Math.max(8, y-10)}px`;
+  EL.pop.classList.add('show');
+}
+function hidePop(){ EL.pop.classList.remove('show'); }
+
+/* ── EVENTS ──────────────────────────────────────────── */
+let eventsWired = false;
+function wireEvents() {
+  if (eventsWired) return; // Only wire once — handlers use S.rawTree dynamically
+  eventsWired = true;
+
+  /* Node click */
+  EL.nodes.addEventListener('click', e=>{
+    const el=e.target.closest('.node'); if(!el) return;
+    const id=el.dataset.id;
+    select(id); hidePop();
+    toggle(id);
+  });
+
+  /* Popover for long-text nodes */
+  EL.nodes.addEventListener('mouseenter', e=>{
+    const el=e.target.closest('.node.long-node'); if(!el) return;
+    showPop(el.dataset.fulltext, e.clientX, e.clientY);
+  }, true);
+  EL.nodes.addEventListener('mousemove', e=>{
+    if(!EL.pop.classList.contains('show')) return;
+    const el=e.target.closest('.node'); if(!el) return;
+    EL.pop.style.left=`${Math.min(e.clientX+16,window.innerWidth-360)}px`;
+    EL.pop.style.top=`${Math.max(8,e.clientY-10)}px`;
+  });
+  EL.nodes.addEventListener('mouseleave', ()=>hidePop(), true);
+
+  /* Pan */
+  EL.vp.addEventListener('mousedown', e=>{
+    if(e.target.closest('.node,.hud-btn,#left-panel')) return;
+    S.drag=true; EL.vp.classList.add('drag');
+    S.dSX=e.clientX-S.panX; S.dSY=e.clientY-S.panY;
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!S.drag) return;
+    S.panX=e.clientX-S.dSX; S.panY=e.clientY-S.dSY; applyT();
+  });
+  window.addEventListener('mouseup', ()=>{ S.drag=false; EL.vp.classList.remove('drag'); });
+
+  /* Scroll-zoom */
+  EL.vp.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const f=e.ctrlKey?Math.exp(-e.deltaY*.008):(e.deltaY<0?1.08:.925);
+    const rc=EL.vp.getBoundingClientRect();
+    doZoom(f, e.clientX-rc.left, e.clientY-rc.top);
+  },{passive:false});
+
+  /* Touch */
+  let t0d=0,t0z=1,tPan=false;
+  EL.vp.addEventListener('touchstart', e=>{
+    if(e.target.closest('.node,.hud-btn,#left-panel')) return;
+    if(e.touches.length===1){tPan=true;S.dSX=e.touches[0].clientX-S.panX;S.dSY=e.touches[0].clientY-S.panY;}
+    else if(e.touches.length===2){tPan=false;t0d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);t0z=S.zoom;}
+  },{passive:true});
+  EL.vp.addEventListener('touchmove', e=>{
+    if(tPan&&e.touches.length===1){S.panX=e.touches[0].clientX-S.dSX;S.panY=e.touches[0].clientY-S.dSY;applyT();}
+    else if(e.touches.length===2){
+      const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      const mx=(e.touches[0].clientX+e.touches[1].clientX)/2, my=(e.touches[0].clientY+e.touches[1].clientY)/2;
+      doZoom((d/t0d)/(S.zoom/t0z),mx,my);
+    }
+  },{passive:true});
+  EL.vp.addEventListener('touchend',()=>{tPan=false;t0d=0;});
+
+  /* HUD */
+  $('btn-exp').onclick = expandAll;
+  $('btn-col').onclick = collapseAll;
+  $('btn-zi').onclick  = ()=>doZoom(1.25);
+  $('btn-zo').onclick  = ()=>doZoom(.8);
+  $('btn-ctr').onclick = ()=>centreRoot(true);
+
+  /* Keyboard */
+  EL.nodes.addEventListener('keydown', e=>{
+    const el=e.target.closest('.node'); if(!el) return;
+    const id=el.dataset.id, m=S.nodes.get(id);
+    switch(e.key){
+      case 'Enter':case ' ':       e.preventDefault(); toggle(id); break;
+      case 'ArrowRight': e.preventDefault(); if(S.expanded.has(id)&&m.childIds[0]) focusNode(m.childIds[0]); break;
+      case 'ArrowLeft':  e.preventDefault(); if(m.parentId) focusNode(m.parentId); break;
+      case 'ArrowDown':  e.preventDefault(); sibNav(id,+1); break;
+      case 'ArrowUp':    e.preventDefault(); sibNav(id,-1); break;
+    }
+  });
+
+  window.addEventListener('resize',()=>{ layout(); centreRoot(false); });
+}
+
+function focusNode(id){ const el=document.getElementById(`n-${id}`); el?.focus(); select(id); }
+function sibNav(id,dir){
+  const m=S.nodes.get(id); if(!m.parentId) return;
+  const sib=S.nodes.get(m.parentId).childIds, idx=sib.indexOf(id)+dir;
+  if(idx>=0&&idx<sib.length) focusNode(sib[idx]);
+}
+
+/* ── THEME ───────────────────────────────────────────── */
+function applyPreset(key, rerender=true) {
+  const p = S.themeJSON?.presets?.[key]; if(!p) return;
+  S.activePreset = key;
+  const layout = S.themeJSON.layout||{}, zoom = S.themeJSON.zoom||{};
+  CFG = {
+    nodeW:  layout.nodeWidth  ||240, nodeH: layout.nodeHeight||42,
+    rootH:  layout.rootHeight ||56,  gapX:  layout.gapX     ||80,
+    gapY:   layout.gapY       ||12,
+    minZoom:zoom.min||.08, maxZoom:zoom.max||3, initZoom:zoom.initial||.82,
+  };
+
+  const root=document.documentElement;
+  root.style.setProperty('--bg',   p.bg);
+  root.style.setProperty('--font', p.font||'system-ui,sans-serif');
+  root.style.setProperty('--sel-glow', p.selectedGlow||'rgba(124,58,237,.6)');
+  root.style.setProperty('--node-w', CFG.nodeW+'px');
+  root.style.setProperty('--node-h', CFG.nodeH+'px');
+  document.body.style.background=p.bg;
+
+  // Dynamic per-depth CSS
+  let css='';
+  (p.depth||[]).forEach((d,i)=>{
+    const h=i===0?CFG.rootH:CFG.nodeH;
+    css+=`.node.d${i}{background:${d.bg};border-color:${d.border};color:${d.text};min-height:${h}px;}`;
+    css+=`.ep.d${i}{stroke:${d.border};opacity:${p.edgeOpacity||.45};}`;
+  });
+  let st=document.getElementById('dyn-css');
+  if(!st){st=document.createElement('style');st.id='dyn-css';document.head.appendChild(st);}
+  st.textContent=css;
+
+  // Legend
+  EL.legRows.innerHTML='';
+  (p.depth||[]).forEach(d=>{
+    const row=document.createElement('div');
+    row.className='leg-row';
+    row.innerHTML=`<div class="leg-dot" style="background:${d.border}"></div><span>${d.label}</span>`;
+    EL.legRows.appendChild(row);
+  });
+
+  markThemeBtn(key);
+  if(rerender && S.rawTree) layout();
+}
+
+function buildThemePanel() {
+  EL.themeBtns.innerHTML='';
+  const presets=S.themeJSON?.presets||{};
+  Object.keys(presets).forEach(key=>{
+    const border=presets[key]?.depth?.[0]?.border||'#888';
+    const labels={'dark-violet':'Dark Violet','ocean':'Ocean','forest':'Forest','sunset':'Sunset','mono':'Mono'};
+    const btn=document.createElement('button');
+    btn.className='opt-btn'; btn.dataset.key=key;
+    btn.innerHTML=`<span class="swatch" style="background:${border}"></span>${labels[key]||key}`;
+    btn.onclick=()=>{ applyPreset(key,true); markThemeBtn(key); };
+    EL.themeBtns.appendChild(btn);
+  });
+}
+function markThemeBtn(key){
+  EL.themeBtns.querySelectorAll('.opt-btn').forEach(b=>b.classList.toggle('active',b.dataset.key===key));
+}
+
+/* ── DATA PANEL ─────────────────────────────────────── */
+const FILE_LABELS = {
+  'curriculum.json':'📚 Curriculum',
+  'banking.json':   '🏦 Banking & Finance',
+};
+
+function buildDataPanel(files) {
+  EL.dataBtns.innerHTML='';
+  files.forEach(file=>{
+    const btn=document.createElement('button');
+    btn.className='opt-btn'; btn.dataset.file=file;
+    btn.textContent=FILE_LABELS[file]||file;
+    btn.onclick=async ()=>{
+      if(S.activeDataset===file) return;
+      EL.loader.classList.remove('out'); EL.loader.style.display='flex';
+      try{ await loadDataset(file); }
+      catch(e){ showErr(e.message); }
+    };
+    EL.dataBtns.appendChild(btn);
+  });
+}
+function markDataBtn(file){
+  EL.dataBtns.querySelectorAll('.opt-btn').forEach(b=>b.classList.toggle('active',b.dataset.file===file));
+}
+
+/* ── SR TREE ─────────────────────────────────────────── */
+function updateSR(){
+  if(!S.rawTree) return;
+  function mk(n){ const open=S.expanded.has(n.id); let s=`<li role="treeitem" aria-expanded="${open}"><span>${n.text}</span>`; if(n.children?.length&&open) s+=`<ul role="group">${n.children.map(mk).join('')}</ul>`; return s+'</li>'; }
+  EL.srTree.innerHTML=`<ul role="tree">${mk(S.rawTree)}</ul>`;
+}
+
+/* ── UTILITIES ───────────────────────────────────────── */
+function setMsg(t){ EL.lmsg.textContent=t; }
+function hideLoader(){
+  EL.loader.classList.add('out');
+  setTimeout(()=>EL.loader.style.display='none',450);
+}
+function showErr(msg){
+  EL.loader.style.display='none';
+  EL.errMsg.textContent=msg;
+  EL.errScr.classList.add('show');
+}
+</script>
+</body>
+</html>

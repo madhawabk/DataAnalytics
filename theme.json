@@ -1,0 +1,273 @@
+{
+  "_info": "Change 'preset' to switch theme. Change 'dataFile' to switch content.",
+  "dataFile": "curriculum.json",
+  "preset": "dark-violet",
+  "presets": {
+    "dark-violet": {
+      "bg": "#0a0f1e",
+      "font": "'Segoe UI', system-ui, sans-serif",
+      "edgeOpacity": 0.45,
+      "selectedGlow": "rgba(124,58,237,0.6)",
+      "depth": [
+        {
+          "label": "Root",
+          "bg": "linear-gradient(135deg,#4c1d95,#6d28d9)",
+          "border": "#7c3aed",
+          "text": "#ffffff"
+        },
+        {
+          "label": "Module",
+          "bg": "linear-gradient(135deg,#1e3a8a,#1d4ed8)",
+          "border": "#2563eb",
+          "text": "#e0eaff"
+        },
+        {
+          "label": "Section",
+          "bg": "linear-gradient(135deg,#164e63,#0e7490)",
+          "border": "#0891b2",
+          "text": "#e0f7ff"
+        },
+        {
+          "label": "Topic",
+          "bg": "linear-gradient(135deg,#064e3b,#047857)",
+          "border": "#059669",
+          "text": "#dcfce7"
+        },
+        {
+          "label": "Sub-topic",
+          "bg": "linear-gradient(135deg,#78350f,#b45309)",
+          "border": "#d97706",
+          "text": "#fef3c7"
+        },
+        {
+          "label": "Detail",
+          "bg": "linear-gradient(135deg,#7f1d1d,#b91c1c)",
+          "border": "#dc2626",
+          "text": "#fee2e2"
+        },
+        {
+          "label": "Note",
+          "bg": "linear-gradient(135deg,#1e1b4b,#3730a3)",
+          "border": "#6366f1",
+          "text": "#e0e7ff"
+        }
+      ]
+    },
+    "ocean": {
+      "bg": "#020b18",
+      "font": "'Trebuchet MS', sans-serif",
+      "edgeOpacity": 0.5,
+      "selectedGlow": "rgba(56,189,248,0.6)",
+      "depth": [
+        {
+          "label": "Root",
+          "bg": "linear-gradient(135deg,#0c4a6e,#0369a1)",
+          "border": "#38bdf8",
+          "text": "#ffffff"
+        },
+        {
+          "label": "Module",
+          "bg": "linear-gradient(135deg,#065f46,#047857)",
+          "border": "#34d399",
+          "text": "#d1fae5"
+        },
+        {
+          "label": "Section",
+          "bg": "linear-gradient(135deg,#1e3a5f,#1d4ed8)",
+          "border": "#60a5fa",
+          "text": "#dbeafe"
+        },
+        {
+          "label": "Topic",
+          "bg": "linear-gradient(135deg,#134e4a,#0f766e)",
+          "border": "#2dd4bf",
+          "text": "#ccfbf1"
+        },
+        {
+          "label": "Sub-topic",
+          "bg": "linear-gradient(135deg,#1a1a5e,#2e2e99)",
+          "border": "#818cf8",
+          "text": "#e0e7ff"
+        },
+        {
+          "label": "Detail",
+          "bg": "linear-gradient(135deg,#0f3460,#16213e)",
+          "border": "#7dd3fc",
+          "text": "#e0f2fe"
+        },
+        {
+          "label": "Note",
+          "bg": "linear-gradient(135deg,#0f2942,#1e4060)",
+          "border": "#93c5fd",
+          "text": "#dbeafe"
+        }
+      ]
+    },
+    "forest": {
+      "bg": "#0d1a0e",
+      "font": "Georgia, serif",
+      "edgeOpacity": 0.5,
+      "selectedGlow": "rgba(74,222,128,0.55)",
+      "depth": [
+        {
+          "label": "Root",
+          "bg": "linear-gradient(135deg,#14532d,#166534)",
+          "border": "#4ade80",
+          "text": "#ffffff"
+        },
+        {
+          "label": "Module",
+          "bg": "linear-gradient(135deg,#365314,#3f6212)",
+          "border": "#a3e635",
+          "text": "#f0fdf4"
+        },
+        {
+          "label": "Section",
+          "bg": "linear-gradient(135deg,#1c4532,#2d6a4f)",
+          "border": "#52b788",
+          "text": "#d8f3dc"
+        },
+        {
+          "label": "Topic",
+          "bg": "linear-gradient(135deg,#1e3a1e,#2d5a27)",
+          "border": "#74c69d",
+          "text": "#b7e4c7"
+        },
+        {
+          "label": "Sub-topic",
+          "bg": "linear-gradient(135deg,#3b2f14,#5c4a1e)",
+          "border": "#d4a017",
+          "text": "#fefae0"
+        },
+        {
+          "label": "Detail",
+          "bg": "linear-gradient(135deg,#2d1b00,#4a3000)",
+          "border": "#c9a84c",
+          "text": "#fff8dc"
+        },
+        {
+          "label": "Note",
+          "bg": "linear-gradient(135deg,#1a2e1a,#243824)",
+          "border": "#86efac",
+          "text": "#dcfce7"
+        }
+      ]
+    },
+    "sunset": {
+      "bg": "#120a1e",
+      "font": "'Gill Sans', Calibri, sans-serif",
+      "edgeOpacity": 0.5,
+      "selectedGlow": "rgba(244,114,182,0.6)",
+      "depth": [
+        {
+          "label": "Root",
+          "bg": "linear-gradient(135deg,#7c1d6f,#be185d)",
+          "border": "#f472b6",
+          "text": "#ffffff"
+        },
+        {
+          "label": "Module",
+          "bg": "linear-gradient(135deg,#7c2d12,#c2410c)",
+          "border": "#fb923c",
+          "text": "#fff7ed"
+        },
+        {
+          "label": "Section",
+          "bg": "linear-gradient(135deg,#78350f,#b45309)",
+          "border": "#fbbf24",
+          "text": "#fffbeb"
+        },
+        {
+          "label": "Topic",
+          "bg": "linear-gradient(135deg,#701a75,#86198f)",
+          "border": "#e879f9",
+          "text": "#fdf4ff"
+        },
+        {
+          "label": "Sub-topic",
+          "bg": "linear-gradient(135deg,#831843,#9d174d)",
+          "border": "#fb7185",
+          "text": "#fff1f2"
+        },
+        {
+          "label": "Detail",
+          "bg": "linear-gradient(135deg,#4c0519,#881337)",
+          "border": "#fda4af",
+          "text": "#ffe4e6"
+        },
+        {
+          "label": "Note",
+          "bg": "linear-gradient(135deg,#4a0e6e,#6b21a8)",
+          "border": "#d8b4fe",
+          "text": "#faf5ff"
+        }
+      ]
+    },
+    "mono": {
+      "bg": "#0c0c0c",
+      "font": "'Courier New', Courier, monospace",
+      "edgeOpacity": 0.35,
+      "selectedGlow": "rgba(255,255,255,0.4)",
+      "depth": [
+        {
+          "label": "Root",
+          "bg": "linear-gradient(135deg,#1f1f1f,#333333)",
+          "border": "#ffffff",
+          "text": "#ffffff"
+        },
+        {
+          "label": "Module",
+          "bg": "linear-gradient(135deg,#1a1a1a,#2e2e2e)",
+          "border": "#cccccc",
+          "text": "#eeeeee"
+        },
+        {
+          "label": "Section",
+          "bg": "linear-gradient(135deg,#161616,#272727)",
+          "border": "#aaaaaa",
+          "text": "#dddddd"
+        },
+        {
+          "label": "Topic",
+          "bg": "linear-gradient(135deg,#111111,#222222)",
+          "border": "#888888",
+          "text": "#cccccc"
+        },
+        {
+          "label": "Sub-topic",
+          "bg": "linear-gradient(135deg,#0e0e0e,#1c1c1c)",
+          "border": "#666666",
+          "text": "#bbbbbb"
+        },
+        {
+          "label": "Detail",
+          "bg": "linear-gradient(135deg,#0a0a0a,#181818)",
+          "border": "#444444",
+          "text": "#aaaaaa"
+        },
+        {
+          "label": "Note",
+          "bg": "linear-gradient(135deg,#080808,#141414)",
+          "border": "#333333",
+          "text": "#999999"
+        }
+      ]
+    }
+  },
+  "layout": {
+    "nodeWidth": 240,
+    "nodeHeight": 42,
+    "rootHeight": 56,
+    "gapX": 80,
+    "gapY": 12
+  },
+  "zoom": {
+    "initial": 0.82,
+    "min": 0.08,
+    "max": 3.0
+  },
+  "datasets": [
+    "curriculum.json",
+    "banking.json"
+  ]
+}
